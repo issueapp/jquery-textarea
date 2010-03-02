@@ -1,0 +1,6 @@
+jquery.textarea.js
+------------------
+
+Plugin for jquery that allow you to control a textarea by providing a text selection and manipulation API, as well as a simple toolbar API. This is mostly a clone of livepipe for jquery.
+
+See test.html for an example of use with markdown.
