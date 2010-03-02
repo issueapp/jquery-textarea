@@ -158,7 +158,7 @@
 		});  
 
 		toolbar.addButton('Heading',function(){  
-		    var selection = this.getSelection() || 'Heading';
+		    var selection = $.trim(this.getSelection());
 		    if (selection == '') {
 	        selection = 'Heading';
 		    }
