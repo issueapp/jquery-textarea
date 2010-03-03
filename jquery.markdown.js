@@ -1,78 +1,79 @@
-$.fn.markdown = function (preview) {
-  var textarea = $(this).get(0);
-  var converter = new Showdown.converter;
-  if (!preview) {
-    preview = '#markdown_formatted'
-  }
-    
-  var get_renderer = function(content) {
-    var iframe = $('<iframe></iframe>', {
-      css: { width: '100%', height: "100%"}
-    }).appendTo(preview)
-    
-    iframe = iframe[0]
-    doc = iframe.document;    
-    if(iframe.contentDocument)
-      doc = iframe.contentDocument; // For NS6
-    else if(iframe.contentWindow)
-      doc = iframe.contentWindow.document; // For IE5.5 and IE6
+(function () {
+  var markdown = {
+    // singleton preview iframe
+    preview: null,
 
-    // Put the content in the iframe
-    doc.open();
-    doc.writeln('<div id="formatted"></div>');
-    doc.close();
-    return doc.getElementById('formatted');
-  }
-  var renderer = get_renderer();
-  
-  var converter_callback = function(value) {  
-    renderer.innerHTML = converter.makeHtml(value);
-  }
+    // showdown converter
+    converter: new Showdown.converter,
 
-  var textarea = $(textarea).TextArea({
-  	change: converter_callback
-  });
+    init: function (textarea, preview) {
+      if (!markdown.preview && preview) {
+        var iframe = $('<iframe/>').appendTo(preview);
+        iframe = iframe[0];
 
-  var toolbar = $.Toolbar(textarea, {
+	var idoc = iframe.contentWindow ? iframe.contentWindow.document /* For IE5.5 and IE 6*/: 
+          iframe.contentDocument ? iframe.contentDocument /* For NS6 */: iframe.document /* the rest */; 
+
+        idoc.open();
+        idoc.writeln('<div id="formatted"></div>');
+        idoc.close();
+        markdown.preview = $('#formatted', idoc);
+      }
+
+      var show_preview = preview ? {
+        change: function(value) {
+          markdown.preview.html(markdown.converter.makeHtml(value));
+	}
+      } : {}
+      var textarea = $(textarea).TextArea(show_preview);
+
+      var toolbar = $.Toolbar(textarea, {
   	className: "markdown_toolbar"
-  });  
-  
-  var setup_toolbar = function(toolbar) {
-    //buttons  
-    toolbar.addButton('Italics',function(){ 
+      });
+
+      markdown.add_buttons(toolbar);      
+    },
+
+    add_buttons: function (toolbar) {
+      toolbar.addButton('Italics',function(){ 
         this.wrapSelection('*','*');  
-    },{  
-        id: 'markdown_italics_button'  
-    });  
+      },{  
+        id: 'markdown_italics_button',
+	title: 'italics'
+      });
 
-    toolbar.addButton('Bold',function(){  
+      toolbar.addButton('Bold',function(){  
         this.wrapSelection('**','**');  
-    },{  
-        id: 'markdown_bold_button'  
-    });  
+      },{  
+        id: 'markdown_bold_button',
+	title: 'bold'
+      });  
 
-		toolbar.addButton('Link',function(){  
-		    var selection = this.getSelection();  
-		    var response = prompt('Enter Link URL','');  
-		    if(response == null)  
-		        return;  
-		    this.replaceSelection('[' + (selection == '' ? 'Link Text' : selection) + '](' + (response == '' ? 'http://link_url/' : response).replace(/^(?!(f|ht)tps?:\/\/)/,'http://') + ')');  
-		},{  
-		    id: 'markdown_link_button'  
-		});  
+      toolbar.addButton('Link',function(){  
+        var selection = this.getSelection();  
+        var response = prompt('Enter Link URL','');  
 
+	if(response == null) {
+	  return;
+	}
+	this.replaceSelection('[' + (selection == '' ? 'Link Text' : selection) + '](' + (response == '' ? 'http://link_url/' : response).replace(/^(?!(f|ht)tps?:\/\/)/,'http://') + ')');  
+      },{  
+        id: 'markdown_link_button',
+	title: 'insert http link'
+      });
 
-    toolbar.addButton('Image',function(){  
+      toolbar.addButton('Image',function(){  
         var selection = this.getSelection();  
         var response = prompt('Enter Image URL','');  
         if(response == null)  
             return;  
         this.replaceSelection('![' + (selection == '' ? 'Image Alt Text' : selection) + '](' + (response == '' ? 'http://image_url/' : response).replace(/^(?!(f|ht)tps?:\/\/)/,'http://') + ')');  
-    },{  
-        id: 'markdown_image_button'  
-    });  
+      },{  
+        id: 'markdown_image_button',
+	title: 'insert image'
+      });  
 
-    toolbar.addButton('Heading',function(){  
+      toolbar.addButton('Heading',function(){  
         var selection = this.getSelection() || 'Heading';
         if (selection == '') {
           selection = 'Heading';
@@ -83,19 +84,21 @@ $.fn.markdown = function (preview) {
         }
 
         this.replaceSelection("\n" + selection + "\n" + underscores.join(''));  
-    },{  
-        id: 'markdown_heading_button'  
-    });  
+      },{  
+        id: 'markdown_heading_button',
+	title: 'heading'
+      });  
 
-    toolbar.addButton('Unordered List',function(event){  
+      toolbar.addButton('Unordered List',function(event){  
         this.collectFromEachSelectedLine(function(line){  
-            return event.shiftKey ? (line.match(/^\*{2,}/) ? line.replace(/^\*/,'') : line.replace(/^\*\s/,'')) : (line.match(/\*+\s/) ? '*' : '* ') + line;  
+          return event.shiftKey ? (line.match(/^\*{2,}/) ? line.replace(/^\*/,'') : line.replace(/^\*\s/,'')) : (line.match(/\*+\s/) ? '*' : '* ') + line;  
         });  
-    },{  
-        id: 'markdown_unordered_list_button'  
-    });  
+      },{  
+        id: 'markdown_unordered_list_button',
+	title: 'bullet list'
+      });  
 
-    toolbar.addButton('Ordered List',function(event){  
+      toolbar.addButton('Ordered List',function(event){  
         var i = 0;  
         this.collectFromEachSelectedLine(function(line){  
             if(!line.match(/^\s+$/)){  
@@ -103,33 +106,40 @@ $.fn.markdown = function (preview) {
                 return event.shiftKey ? line.replace(/^\d+\.\s/,'') : (line.match(/\d+\.\s/) ? '' : i + '. ') + line;  
             }  
         });  
-    },{  
-        id: 'markdown_ordered_list_button'  
-    });  
+      },{  
+        id: 'markdown_ordered_list_button',
+	title: 'number list'
+      });  
 
-    toolbar.addButton('Block Quote',function(event){  
+      toolbar.addButton('Block Quote',function(event){  
         this.collectFromEachSelectedLine(function(line){  
             return event.shiftKey ? line.replace(/^\> /,'') : '> ' + line;  
         });  
-    },{  
-        id: 'markdown_quote_button'  
-    });  
+      },{  
+        id: 'markdown_quote_button',
+	title: 'block quote'
+      });  
 
-    toolbar.addButton('Code Block',function(event){  
+      toolbar.addButton('Code Block',function(event){  
         this.collectFromEachSelectedLine(function(line){  
             return event.shiftKey ? line.replace(/    /,'') : '    ' + line;  
         });  
-    },{  
-        id: 'markdown_code_button'  
-    });  
+      },{  
+        id: 'markdown_code_button',
+	title: 'code block'
+      });  
 
-    toolbar.addButton('Help',function(){  
+      toolbar.addButton('Help',function(){  
         window.open('http://daringfireball.net/projects/markdown/dingus');  
-    },{  
-        id: 'markdown_help_button'  
-    });
-
+      },{  
+        id: 'markdown_help_button',
+	title: 'help'
+      });
+    } 
   }
-  
-  setup_toolbar(toolbar)
-}
+
+  $.fn.markdown = function (preview) {
+    var textarea = $(this).get(0);
+    markdown.init(textarea, preview);
+  }
+})();
