@@ -18,6 +18,7 @@
         idoc.writeln('<div id="formatted"></div>');
         idoc.close();
         markdown.preview = $('#formatted', idoc);
+        markdown.preview.html(markdown.converter.makeHtml($(textarea).val()));
       }
 
       var show_preview = preview ? {
