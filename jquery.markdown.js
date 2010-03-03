@@ -8,7 +8,7 @@ $.fn.markdown = function (preview) {
   var get_renderer = function(content) {
     var iframe = $('<iframe></iframe>', {
       css: { width: '100%', height: "100%"}
-    }).appendTo('#markdown_formatted')
+    }).appendTo(preview)
     
     iframe = iframe[0]
     doc = iframe.document;    
