@@ -1,48 +1,43 @@
 $.fn.markdown = function (preview) {
   var textarea = $(this).get(0);
-  
+  var converter = new Showdown.converter;
   if (!preview) {
     preview = '#markdown_formatted'
   }
-
-  var converter = new Showdown.converter;
-  var render_container = null;
-  
-  var renderer = function(content) {
-    if (!render_container) {
-      var iframe = $('<iframe></iframe>', {
-        css: { width: '100%', height: "100%"}
-      }).appendTo('#markdown_formatted')
-      
-      iframe = iframe[0]
-      render_container = iframe.document;    
-      if(iframe.contentDocument)
-          render_container = iframe.contentDocument; // For NS6
-      else if(iframe.contentWindow)
-          render_container = iframe.contentWindow.document; // For IE5.5 and IE6
-    }
+    
+  var get_renderer = function(content) {
+    var iframe = $('<iframe></iframe>', {
+      css: { width: '100%', height: "100%"}
+    }).appendTo('#markdown_formatted')
+    
+    iframe = iframe[0]
+    doc = iframe.document;    
+    if(iframe.contentDocument)
+      doc = iframe.contentDocument; // For NS6
+    else if(iframe.contentWindow)
+      doc = iframe.contentWindow.document; // For IE5.5 and IE6
 
     // Put the content in the iframe
-    render_container.open();
-    render_container.writeln(content);
-    render_container.close();
+    doc.open();
+    doc.writeln('<div id="formatted"></div>');
+    doc.close();
+    return doc.getElementById('formatted');
   }
+  var renderer = get_renderer();
   
   var converter_callback = function(value) {  
-    renderer(converter.makeHtml(value));
+    renderer.innerHTML = converter.makeHtml(value);
   }
 
   var textarea = $(textarea).TextArea({
   	change: converter_callback
   });
 
-
   var toolbar = $.Toolbar(textarea, {
   	className: "markdown_toolbar"
   });  
   
   var setup_toolbar = function(toolbar) {
-
     //buttons  
     toolbar.addButton('Italics',function(){ 
         this.wrapSelection('*','*');  
